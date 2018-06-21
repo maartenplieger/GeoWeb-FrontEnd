@@ -5,7 +5,6 @@ import { arrayMove } from 'react-sortable-hoc';
 import setNestedProperty from 'lodash.set';
 import getNestedProperty from 'lodash.get';
 import removeNestedProperty from 'lodash.unset';
-import uuidv4 from 'uuid/v4';
 import { clearNullPointersAndAncestors } from '../../utils/json';
 import { ReadLocations } from '../../utils/admin';
 import { LOCAL_ACTION_TYPES, STATUSES, LIFECYCLE_STAGE_NAMES, MODES } from './TafActions';
@@ -45,19 +44,38 @@ const createSpaceTimeCombinations = (locations, timestamps) => {
  * Determines whether or not a provided TAF has all the info to be compared to other tafs
  * @param {object} taf The selectable TAF to check
  */
-const hasSelectableTafEssentialCompareInfo = (taf) =>
-  taf && taf.timestamp && taf.location && moment.isMoment(taf.timestamp) && typeof taf.location === 'string';
+const hasSelectableTafEssentialCompareInfo = (taf) => {
+  if (!taf) {
+    return false;
+  }
+  return (taf.timestamp && taf.location && moment.isMoment(taf.timestamp) && typeof taf.location === 'string');
+};
 
 /**
  * Comparator for selectable TAFs
  * @param {object} tafA The first TAF to compare
  * @param {object} tafB The second TAF to compare
- * @returns {boolean} Results in true when the TAFs are equal, false otherwise
+ * @returns {boolean} Results in true when the TAFs are equal, false otherwise.
  */
 const isSameSelectableTaf = (tafA, tafB) => {
-  if (!hasSelectableTafEssentialCompareInfo(tafA) || !hasSelectableTafEssentialCompareInfo(tafB)) {
+  console.log('isSameSelectableTaf ?!');
+  console.log(tafA, tafB);
+  const tafAOK = hasSelectableTafEssentialCompareInfo(tafA);
+  const tafBOK = hasSelectableTafEssentialCompareInfo(tafB);
+
+  if (!tafAOK) {
+    return !tafBOK;
+  }
+  if (!tafBOK) {
     return false;
   }
+  // console.log(tafAOK, tafBOK);
+  // if (!tafAOK || !tafBOK) {
+  //   return false;
+  // }
+  // if (!tafAOK || !tafBOK) {
+  //   return ;
+  // }
   return tafA.timestamp.isSame(tafB.timestamp) && tafA.location.toUpperCase() === tafB.location.toUpperCase();
 };
 
@@ -243,6 +261,38 @@ const updateFeedback = (title, status, subTitle, list, container) => {
   }));
 };
 
+const wrapIncomingtaf = (incomingTaf) => {
+  return produce(TAF_TEMPLATES.SELECTABLE_TAF, (draftSelectable) => {
+    draftSelectable.location = incomingTaf.metadata.location.toUpperCase();
+    draftSelectable.uuid = incomingTaf.metadata.uuid;
+    draftSelectable.status = incomingTaf.metadata.status + ' / ' + incomingTaf.metadata.type;
+    draftSelectable.timestamp = moment.utc(incomingTaf.metadata.validityStart);
+    draftSelectable.label.time = draftSelectable.timestamp.format(TIMELABEL_FORMAT);
+    draftSelectable.label.text = `${draftSelectable.location} ${draftSelectable.label.time}`;
+    let iconName = 'folder-open-o';
+    if (incomingTaf.metadata.status && typeof incomingTaf.metadata.status === 'string') {
+      const tafStatus = incomingTaf.metadata.status.toUpperCase();
+      switch (tafStatus) {
+        case STATUSES.PUBLISHED:
+          iconName = 'folder-open';
+          break;
+        case STATUSES.CONCEPT:
+          break;
+        default:
+          break;
+      }
+    }
+    draftSelectable.label.icon = iconName;
+    Object.entries(draftSelectable.tafData.metadata).forEach((entry) => {
+      if (incomingTaf.metadata.hasOwnProperty(entry[0])) {
+        draftSelectable.tafData.metadata[entry[0]] = incomingTaf.metadata[entry[0]];
+      }
+    });
+    draftSelectable.tafData.forecast = incomingTaf.forecast;
+    draftSelectable.tafData.changegroups.length = 0;
+    draftSelectable.tafData.changegroups.push(...incomingTaf.changegroups);
+  });
+};
 /**
  * Once loaded, this method processes the existing TAFs into the selectable TAFs list
  * @param {Element} container The container to update the selectable TAFs for
@@ -257,36 +307,37 @@ const updateSelectableTafs = (container, tafs) => {
     draftState.selectableTafs.length = 0; // TODO: Why not set to [] ?
     const { locations, timestamps } = draftState;
     tafs.filter(isTafSelectable(locations, timestamps)).forEach((incomingTaf) => {
-      const selectableTaf = produce(TAF_TEMPLATES.SELECTABLE_TAF, (draftSelectable) => {
-        draftSelectable.location = incomingTaf.metadata.location.toUpperCase();
-        draftSelectable.uuid = incomingTaf.metadata.uuid;
-        draftSelectable.status = incomingTaf.metadata.status + ' / ' + incomingTaf.metadata.type;
-        draftSelectable.timestamp = moment.utc(incomingTaf.metadata.validityStart);
-        draftSelectable.label.time = draftSelectable.timestamp.format(TIMELABEL_FORMAT);
-        draftSelectable.label.text = `${draftSelectable.location} ${draftSelectable.label.time}`;
-        let iconName = 'folder-open-o';
-        if (incomingTaf.metadata.status && typeof incomingTaf.metadata.status === 'string') {
-          const tafStatus = incomingTaf.metadata.status.toUpperCase();
-          switch (tafStatus) {
-            case STATUSES.PUBLISHED:
-              iconName = 'folder-open';
-              break;
-            case STATUSES.CONCEPT:
-              break;
-            default:
-              break;
-          }
-        }
-        draftSelectable.label.icon = iconName;
-        Object.entries(draftSelectable.tafData.metadata).forEach((entry) => {
-          if (incomingTaf.metadata.hasOwnProperty(entry[0])) {
-            draftSelectable.tafData.metadata[entry[0]] = incomingTaf.metadata[entry[0]];
-          }
-        });
-        draftSelectable.tafData.forecast = incomingTaf.forecast;
-        draftSelectable.tafData.changegroups.length = 0;
-        draftSelectable.tafData.changegroups.push(...incomingTaf.changegroups);
-      });
+      const selectableTaf = wrapIncomingtaf(incomingTaf);
+      // const selectableTaf = produce(TAF_TEMPLATES.SELECTABLE_TAF, (draftSelectable) => {
+      //   draftSelectable.location = incomingTaf.metadata.location.toUpperCase();
+      //   draftSelectable.uuid = incomingTaf.metadata.uuid;
+      //   draftSelectable.status = incomingTaf.metadata.status + ' / ' + incomingTaf.metadata.type;
+      //   draftSelectable.timestamp = moment.utc(incomingTaf.metadata.validityStart);
+      //   draftSelectable.label.time = draftSelectable.timestamp.format(TIMELABEL_FORMAT);
+      //   draftSelectable.label.text = `${draftSelectable.location} ${draftSelectable.label.time}`;
+      //   let iconName = 'folder-open-o';
+      //   if (incomingTaf.metadata.status && typeof incomingTaf.metadata.status === 'string') {
+      //     const tafStatus = incomingTaf.metadata.status.toUpperCase();
+      //     switch (tafStatus) {
+      //       case STATUSES.PUBLISHED:
+      //         iconName = 'folder-open';
+      //         break;
+      //       case STATUSES.CONCEPT:
+      //         break;
+      //       default:
+      //         break;
+      //     }
+      //   }
+      //   draftSelectable.label.icon = iconName;
+      //   Object.entries(draftSelectable.tafData.metadata).forEach((entry) => {
+      //     if (incomingTaf.metadata.hasOwnProperty(entry[0])) {
+      //       draftSelectable.tafData.metadata[entry[0]] = incomingTaf.metadata[entry[0]];
+      //     }
+      //   });
+      //   draftSelectable.tafData.forecast = incomingTaf.forecast;
+      //   draftSelectable.tafData.changegroups.length = 0;
+      //   draftSelectable.tafData.changegroups.push(...incomingTaf.changegroups);
+      // });
       draftState.selectableTafs.push(selectableTaf);
     });
     draftState.selectableTafs.push(...persistingTafs);
@@ -325,31 +376,38 @@ const updateSelectableTafs = (container, tafs) => {
  * @param {array} selection The list of TAF(s) to be selected
  * @param {Element} container The container to select the TAF(s) in
  */
-const selectTaf = (selection, container) => {
+const selectTaf = (selection, container, forced = false) => {
+  console.log('selectTaf', selection);
   const { state } = container;
   const { selectedTaf } = state;
-  if (!selection || !Array.isArray(selection)) {
-    return;
-  }
-  const hasPreviousSelection = selectedTaf && Array.isArray(selectedTaf) && selectedTaf.length > 0;
-  if (selection.length === 0) {
-    if (!hasPreviousSelection) {
-      return;
-    } else {
-      container.setState(produce(state, draftState => {
-        if (Array.isArray(draftState.selectedTaf)) {
-          draftState.selectedTaf.length = 0;
-        } else {
-          draftState.selectedTaf = [];
-        }
-        draftState.mode = MODES.READ;
-      }));
+  if (!forced) {
+    if (!selection || !Array.isArray(selection)) {
       return;
     }
-  }
-
-  if (isSameSelectableTaf(selection[0], state.selectedTaf)) {
-    return;
+    const hasPreviousSelection = selectedTaf && Array.isArray(selectedTaf) && selectedTaf.length > 0;
+    if (selection.length === 0) {
+      if (!hasPreviousSelection) {
+        return;
+      } else {
+        container.setState(produce(state, draftState => {
+          if (Array.isArray(draftState.selectedTaf)) {
+            draftState.selectedTaf.length = 0;
+          } else {
+            draftState.selectedTaf = [];
+          }
+          draftState.mode = MODES.READ;
+        }));
+        return;
+      }
+    }
+    if (hasPreviousSelection) {
+      if (isSameSelectableTaf(selection[0], selectedTaf[0])) {
+        console.log('isSameSelectableTaf YES');
+        return;
+      } else {
+        console.log('isSameSelectableTaf NO!!');
+      }
+    }
   }
   container.setState(produce(state, draftState => {
     if (!Array.isArray(draftState.selectedTaf)) {
@@ -410,18 +468,23 @@ const saveTaf = (event, container) => {
       draftState.mode = MODES.READ;
     }), () => {
       synchronizeSelectableTafs(container);
-      /* TODO: I want to set the metadata status from NEW to CONCEPT.
-          or even better ,replace the current taf selection with the returned tafJSON */
-      try {
-        if (selectedTaf[0].tafData.metadata.status === STATUSES.NEW) {
-          container.setState(produce(state, draftState => {
-            draftState.selectedTaf[0].tafData.metadata.status = STATUSES.CONCEPT;
-            draftState.mode = MODES.READ;
-          }));
-        }
-      } catch (e) {
-        console.error('Unable to change selected tag status from new to concept', e);
-      }
+
+      console.log(response.data.tafjson);
+      const selectableTaf = wrapIncomingtaf(response.data.tafjson);
+      console.log('Setting selectableTaf', selectableTaf);
+      selectTaf([selectableTaf], container, true);
+      // /* TODO: I want to set the metadata status from NEW to CONCEPT.
+      //     or even better ,replace the current taf selection with the returned tafJSON */
+      // try {
+      //   if (selectedTaf[0].tafData.metadata.status === STATUSES.NEW) {
+      //     container.setState(produce(state, draftState => {
+      //       draftState.selectedTaf[0].tafData.metadata.status = STATUSES.CONCEPT;
+      //       draftState.mode = MODES.READ;
+      //     }));
+      //   }
+      // } catch (e) {
+      //   console.error('Unable to change selected tag status from new to concept', e);
+      // }
     });
   }).catch(error => {
     console.error('Couldn\'t save TAF', error);
@@ -534,10 +597,9 @@ const publishTaf = (event, container) => {
  */
 const amendTaf = (event, container) => {
   const { state } = container;
-  const correctionUuid = uuidv4();
   container.setState(produce(state, draftState => {
     draftState.selectedTaf[0].tafData.metadata.previousUuid = draftState.selectedTaf[0].tafData.metadata.uuid;
-    draftState.selectedTaf[0].tafData.metadata.uuid = correctionUuid;
+    draftState.selectedTaf[0].tafData.metadata.uuid = null;
     draftState.selectedTaf[0].tafData.metadata.status = STATUSES.CONCEPT;
     draftState.selectedTaf[0].tafData.metadata.type = LIFECYCLE_STAGE_NAMES.AMENDMENT;
     draftState.mode = MODES.EDIT;
@@ -550,15 +612,17 @@ const amendTaf = (event, container) => {
  * @param {Element} container The container in which the create correction action was triggered
  */
 const correctTaf = (event, container) => {
+  console.log('correctTaf');
   const { state } = container;
-  const correctionUuid = uuidv4();
   container.setState(produce(state, draftState => {
     draftState.selectedTaf[0].tafData.metadata.previousUuid = draftState.selectedTaf[0].tafData.metadata.uuid;
-    draftState.selectedTaf[0].tafData.metadata.uuid = correctionUuid;
+    draftState.selectedTaf[0].tafData.metadata.uuid = null;
     draftState.selectedTaf[0].tafData.metadata.status = STATUSES.CONCEPT;
     draftState.selectedTaf[0].tafData.metadata.type = LIFECYCLE_STAGE_NAMES.CORRECTION;
     draftState.mode = MODES.EDIT;
-  }));
+  }), () => {
+    console.log('correctTaf state done');
+  });
 };
 
 /**
@@ -568,10 +632,9 @@ const correctTaf = (event, container) => {
  */
 const cancelTaf = (event, container) => {
   const { state } = container;
-  const correctionUuid = uuidv4();
   container.setState(produce(state, draftState => {
     draftState.selectedTaf[0].tafData.metadata.previousUuid = draftState.selectedTaf[0].tafData.metadata.uuid;
-    draftState.selectedTaf[0].tafData.metadata.uuid = correctionUuid;
+    draftState.selectedTaf[0].tafData.metadata.uuid = null;
     draftState.selectedTaf[0].tafData.metadata.status = STATUSES.CONCEPT;
     draftState.selectedTaf[0].tafData.metadata.type = LIFECYCLE_STAGE_NAMES.CANCEL;
     draftState.mode = MODES.EDIT;

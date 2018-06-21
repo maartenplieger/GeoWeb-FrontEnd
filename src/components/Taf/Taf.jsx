@@ -654,12 +654,14 @@ class Taf extends Component {
   reduceAbilities () {
     const { selectedTaf, abilitiesPerStatus, mode } = this.props;
     const abilitiesCtAs = []; // CtA = Call To Action
+
     if (!selectedTaf || !selectedTaf.tafData || !selectedTaf.tafData.metadata ||
       !selectedTaf.tafData.metadata.status || !selectedTaf.tafData.metadata.type) {
       return abilitiesCtAs;
     }
     const selectedStatus = selectedTaf.tafData.metadata.status.toUpperCase();
     const selectedType = selectedTaf.tafData.metadata.type.toUpperCase();
+    console.log('reduceAbilities', selectedTaf, selectedStatus, selectedType);
     if (!selectedStatus || !selectedType || !mode) {
       return abilitiesCtAs;
     }
