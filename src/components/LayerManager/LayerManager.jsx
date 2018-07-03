@@ -1,6 +1,7 @@
 import React, { PureComponent } from 'react';
 import Layers from './Layers';
-import { Col, Row } from 'reactstrap';
+import { Col, Row, Button } from 'reactstrap';
+import { Icon } from 'react-fa';
 export default class LayerManager extends PureComponent {
   constructor () {
     super();
@@ -38,20 +39,32 @@ export default class LayerManager extends PureComponent {
   }
 
   render () {
-    const { dispatch, panelsActions, activePanelId, panel } = this.props;
+    const { dispatch, panelsActions, activePanelId, panel, toggleLayerChooser, toggleLayerManager, layerManagerOpen } = this.props;
     if (!panel) {
       return <Col />;
     }
     const baseLayers = panel.baselayers.filter((layer) => !layer.keepOnTop);
     const overLayers = panel.baselayers.filter((layer) => layer.keepOnTop === true);
     const dataLayers = panel.layers;
+    let layerManagerClass = layerManagerOpen ? 'LayerManagerOpen' : 'LayerManagerClose';
     return (
-      <Col xs='auto' className={'LayerManager'} style={{ minWidth: '42rem', flexDirection: 'column' }}>
-        <Layers activePanelId={activePanelId} dispatch={dispatch} panelsActions={panelsActions} role='overlays' data={overLayers} color='danger' />
+      <Col xs='auto' className={'LayerManager ' + layerManagerClass} style={{ flexDirection: 'column' }}>
+        <Layers activePanelId={activePanelId} dispatch={dispatch} panelsActions={panelsActions} role='overlays' data={overLayers} color='danger' 
+          layerManagerOpen={layerManagerOpen} />
         <Layers onLayerClick={(index) => this.makeActiveLayer(index)} activePanelId={activePanelId}
-          dispatch={dispatch} panelsActions={panelsActions} role='datalayers' data={dataLayers} color='info' />
-        <Layers activePanelId={activePanelId} dispatch={dispatch} panelsActions={panelsActions} role='maplayers' data={baseLayers} color='success' />
-        <Row className='layerinfo' style={{ marginBottom: '0.1rem', height: '1rem' }} />
+          dispatch={dispatch} panelsActions={panelsActions} role='datalayers' data={dataLayers} color='info' 
+          layerManagerOpen={layerManagerOpen} />
+        <Layers activePanelId={activePanelId} dispatch={dispatch} panelsActions={panelsActions} role='maplayers' data={baseLayers} color='success' 
+          layerManagerOpen={layerManagerOpen} />
+        { /* <Row className='layerinfo' style={{ marginBottom: '0.1rem', height: '1rem' }} /> */ }
+        <Row style={{ margin:'auto 0 0 0' }}>
+          <Button color='primary' onClick={toggleLayerChooser} style={{ width:'10rem', margin: '0.33rem auto 0 0.33rem' }} title='Add layers'>Add &nbsp;<Icon name='plus' /></Button>
+          <Button
+            style={{ margin:'0.33rem 0.33rem 0 auto' }}
+            color='primary'
+            onClick={toggleLayerManager}
+            title={layerManagerOpen ? 'Collapse advanced layer controls' : 'Expand advanced layer controls'}><Icon name={layerManagerOpen ? 'angle-double-left' : 'angle-double-right'} /></Button>
+        </Row>
       </Col>);
   }
 }

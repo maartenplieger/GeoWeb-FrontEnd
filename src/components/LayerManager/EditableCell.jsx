@@ -7,7 +7,7 @@ export default class EditableCell extends PureComponent {
 
     return(<ConcreteCell onClick={this.props.onClick} active={this.props.active} color={this.props.color}>
       {this.props.children}&nbsp;
-      <Icon id={this.props.id} name='pencil' />
+      <Icon className={'LMEditableCell'} id={this.props.id} name='pencil' />
     </ConcreteCell>)
   }
 }

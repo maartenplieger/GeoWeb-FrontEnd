@@ -570,6 +570,10 @@ main:fullscreen {
   margin-bottom: 0.1rem;
 }
 
+.Footer {
+  min-height: 12rem;
+}
+
 .Footer .datalayer  .badge {
   font-size: 80%;
   height: 17px;
@@ -648,13 +652,8 @@ input[type=number]::-webkit-inner-spin-button {
   z-index: 2;
 }
 
-.LayerManagerPanel .col:not(:last-child), .LayerManagerPanel .col-auto:not(:last-child) {
-  margin-right: 0.33rem;
-}
 
-.LayerManagerPanel .btn {
-  width: 3rem;
-}
+
 
 *,
 *:before,

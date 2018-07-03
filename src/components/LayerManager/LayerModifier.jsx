@@ -30,8 +30,8 @@ export default class LayerModifier extends PureComponent {
     const { layer } = this.props;
     return (
       <Col xs='auto'>
-        <Icon onClick={this.toggleEnabled} className={'modifier'} style={{ marginRight: '0.33rem' }} name={layer.enabled ? 'eye' : 'eye-slash'} />
-        <Icon onClick={this.deleteLayer} className={'modifier'} name='trash' />
+        <Icon onClick={this.toggleEnabled} className={'modifier'} style={{ marginRight: '0.33rem', marginLeft: '0.33rem' }} name={layer.enabled ? 'eye' : 'eye-slash'} />
+        <Icon onClick={this.deleteLayer} className={'modifier'} style={{ marginRight: '0.33rem', marginLeft: '0.33rem' }} name='trash' />
       </Col>);
   }
 }

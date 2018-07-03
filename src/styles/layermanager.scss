@@ -1,6 +1,6 @@
 .LayerManager span.badge {
-  height: 1rem;
-  padding-top: 0.075rem;
+  padding-top: 6px;
+  cursor: pointer;
 }
 
 .LayerManager span.badge.alert-danger {
@@ -19,6 +19,7 @@
 
 .LayerManager span.fa.modifier {
   color: #015f8c;
+  padding-top:0.2em;
 }
 .LayerManager span.fa.modifier.disabled {
   color: #bebebe;
@@ -27,6 +28,43 @@
   padding-top: 0;
 }
 
-.LayerManager .Layer {
-  margin: 0.125rem;
+.LayerManager .Layer .SelectedLayer{
+
+}
+
+.Layer, .SelectedLayer {
+  margin-top: 2px !important;
+  height: 26px;
+  /* padding-right:0.66rem; */
+}
+
+.SelectedLayer {
+  border-top:1px solid #888;
+  border-bottom:1px solid #888;
+  background-color:'#d9edf7';
+}
+
+.LayerManagerPanel .badge {
+  border-radius:0;
+  border:none;
+  padding:none;
+}
+
+.LayerManagerPanel .LMEditableCell{
+  margin-left:5px;
+}
+
+.LayerManagerPanel .col:not(:last-child), .LayerManagerPanel .col-auto:not(:last-child) {
+  margin-right: 0;
+}
+
+.LayerManagerPanel .btn {
+  width: 3rem;
+  margin-right:0.33rem;
+}
+
+.LayerManagerOpen {
+  min-width:42rem;
+}
+.LayerManagerClose {
 }

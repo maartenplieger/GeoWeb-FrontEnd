@@ -16,6 +16,7 @@ class LayerManagerPanel extends PureComponent {
     super(props);
     this.setResizeListener = this.setResizeListener.bind(this);
     this.toggleLayerChooser = this.toggleLayerChooser.bind(this);
+    this.toggleLayerManager = this.toggleLayerManager.bind(this);    
     this.toggleControls = this.toggleControls.bind(this);
     this.toggleFullscreen = this.toggleFullscreen.bind(this);
     this.state = {
@@ -81,6 +82,11 @@ class LayerManagerPanel extends PureComponent {
   toggleLayerChooser () {
     this.setState({ layerChooserOpen: !this.state.layerChooserOpen });
   }
+
+  toggleLayerManager () {
+    this.setState({ layerManagerOpen: !this.state.layerManagerOpen });
+  }
+
   handleAddLayer (addItem) {
     const { dispatch, panelsActions, panelsProperties } = this.props;
     if (this.state.activeSource.goal !== 'OVERLAY') {
@@ -116,6 +122,7 @@ class LayerManagerPanel extends PureComponent {
     }
     this.setState({
       layerChooserOpen: false,
+      layerManagerOpen: false,
       activeTab: '1',
       activeSource: null,
       action: null,
@@ -140,33 +147,48 @@ class LayerManagerPanel extends PureComponent {
     const { sources, animationSettings } = adagucProperties;
     const { panels, activePanelId } = panelsProperties;
     const currentPanel = panels[activePanelId];
-    const isFullScreen = hashHistory.getCurrentLocation().pathname === '/full_screen';
+    // const isFullScreen = hashHistory.getCurrentLocation().pathname === '/full_screen';
 
     return (
       <Panel title={title} className='LayerManagerPanel'>
-        <LayerChooser toggle={this.toggleLayerChooser} dispatch={dispatch} panelsActions={panelsActions} panelsProperties={panelsProperties} open={this.state.layerChooserOpen} data={this.props.adagucProperties.sources} />
+        <LayerChooser toggle={this.toggleLayerChooser} dispatch={dispatch} panelsActions={panelsActions} panelsProperties={panelsProperties}
+          open={this.state.layerChooserOpen} data={this.props.adagucProperties.sources} />
         <Row style={{ flex: 1 }}>
           <Col xs='auto'>
-            <TimeControls animationSettings={animationSettings} dispatch={dispatch} adagucActions={adagucActions} currentTime={adagucProperties.timeDimension} panel={currentPanel} showControls={this.state.showControls} />
+            <TimeControls animationSettings={animationSettings} dispatch={dispatch} adagucActions={adagucActions} currentTime={adagucProperties.timeDimension}
+              panel={currentPanel} showControls={this.state.showControls} />
           </Col>
           <Col style={{ flex: 1, flexDirection: 'column-reverse' }}>
             <Row style={{ flex: 1 }}>
+              <LayerManager panel={panels[activePanelId]} dispatch={dispatch} panelsActions={this.props.panelsActions}
+                adagucActions={adagucActions} activePanelId={activePanelId} toggleLayerChooser={this.toggleLayerChooser}
+                layerManagerOpen={this.state.layerManagerOpen} toggleLayerManager={this.toggleLayerManager} />
+              { /* div>
+                <Button
+                  style={{ margin:'0 0 0 0.33rem' }}
+                  color='primary'
+                  onClick={this.toggleLayerManager}
+                  title={this.state.layerManagerOpen ? 'Collapse advanced layer controls' : 'Expand advanced layer controls'}><Icon name={this.state.layerManagerOpen ? 'angle-double-left' : 'angle-double-right'} /></Button>
+              </div>  */ }
               <TimeComponent activePanelId={activePanelId} width={this.state.width} panel={panels[activePanelId]}
                 height={this.state.height} timedim={adagucProperties.timeDimension}
                 panelsActions={panelsActions} dispatch={dispatch} adagucActions={adagucActions} ref={(panel) => this.setResizeListener(ReactDOM.findDOMNode(panel))} />
-              <LayerManager panel={panels[activePanelId]} dispatch={dispatch} panelsActions={this.props.panelsActions}
-                adagucActions={adagucActions} activePanelId={activePanelId} />
+      
             </Row>
             <Row />
           </Col>
-          <LayerMutations toggleFullscreen={this.toggleFullscreen} toggleControls={this.toggleControls} dispatch={dispatch} panelsActions={panelsActions} activePanelId={activePanelId} sources={sources} toggleLayerChooser={this.toggleLayerChooser} showControls={this.state.showControls} isFullScreen={isFullScreen} removeAllLayersEnabled={currentPanel && ((currentPanel.baselayers.length > 2) || (currentPanel.layers.length > 0))}/>
+          { /* <LayerMutations toggleFullscreen={this.toggleFullscreen} toggleControls={this.toggleControls}
+            dispatch={dispatch} panelsActions={panelsActions} activePanelId={activePanelId} sources={sources} 
+            toggleLayerChooser={this.toggleLayerChooser} showControls={this.state.showControls} isFullScreen={isFullScreen} 
+            removeAllLayersEnabled={currentPanel && ((currentPanel.baselayers.length > 2) || (currentPanel.layers.length > 0))}/>
+          */ }
         </Row>
       </Panel>
     );
   }
 }
 
-class LayerMutations extends PureComponent {
+/* class LayerMutations extends PureComponent {
   constructor () {
     super();
     this.resetLayers = this.resetLayers.bind(this);
@@ -235,7 +257,7 @@ class LayerMutations extends PureComponent {
       </Col>
     );
   }
-}
+} */
 
 class LayerChooser extends PureComponent {
   constructor () {
@@ -488,8 +510,20 @@ class TimeControls extends Component {
   render () {
     if (this.props.showControls) {
       return (
-        <div style={{ flexDirection: 'column-reverse', marginRight: '.66rem' }}>
-          <Row>
+        <div style={{ flexDirection: 'column' }}>
+          <Row style={{ marginBottom: '.33rem' }}>
+            <Col xs='auto'>
+              <Button color='primary' onClick={() => this.handleButtonClickNextPrev('down')}>
+                <Icon name='step-backward' />
+              </Button>
+            </Col>
+            <Col xs='auto'>
+              <Button color='primary' onClick={() => this.handleButtonClickNextPrev('up')}>
+                <Icon name='step-forward' />
+              </Button>
+            </Col>
+          </Row>
+          <Row style={{ marginBottom: '.33rem' }}>
             <Col xs='auto'>
               <Button onClick={() => {
                 this.props.dispatch(this.props.adagucActions.toggleAnimation());
@@ -502,27 +536,16 @@ class TimeControls extends Component {
                 <Icon name='clock-o' />
               </Button>
             </Col>
-            <Col xs='auto'>
-              <Input style={{ maxWidth: '7rem', marginLeft: '0.17rem' }} value={this.props.animationSettings.duration || ''} onChange={this.handleDurationUpdate}
-                placeholder='No. hours' type='number' step='1' min='0' ref={elm => { this.durationInput = elm; }} />
-            </Col>
           </Row>
-          <Row style={{ marginBottom: '.33rem' }}>
+          <Row>
             <Col xs='auto'>
-              <Button color='primary' onClick={() => this.handleButtonClickNextPrev('down')}>
-                <Icon name='step-backward' />
-              </Button>
+              <Input style={{ maxWidth: '6rem', marginLeft: '0.17rem' }} value={this.props.animationSettings.duration || ''} onChange={this.handleDurationUpdate}
+                placeholder='hours' type='number' step='1' min='0' ref={elm => { this.durationInput = elm; }} />
             </Col>
-            <Col xs='auto'>
-              <Button color='primary' onClick={() => this.handleButtonClickNextPrev('up')}>
-                <Icon name='step-forward' />
-              </Button>
-            </Col>
-            <Col xs='auto'>
+            { /* <Col xs='auto'>
               <Label style={{ marginTop: '1.5rem', marginBottom: '-1.5rem', marginLeft: '0.17rem' }}>Duration</Label>
-            </Col>
+            </Col> */ }
           </Row>
-          <Row />
         </div>);
     }
     return null;

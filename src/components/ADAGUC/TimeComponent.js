@@ -22,6 +22,8 @@ export default class TimeComponent extends PureComponent {
     this.changeHour = this.changeHour.bind(this);
     this.changeMinute = this.changeMinute.bind(this);
     this.debouncedForceUpdate = debounce(this.forceUpdate, 100, false);
+    this.layerHeight = 28;
+    this.blockHeight = 25;
   }
   /* istanbul ignore next */
   // eventOnMapDimUpdate () {
@@ -57,11 +59,9 @@ export default class TimeComponent extends PureComponent {
     const { panel } = this.props;
     const { layers, baselayers } = panel;
     const overlayers = baselayers.filter(layer => layer.keepOnTop === true);
-    const layerHeight = 20;
-    const blockHeight = 16;
     ctx.lineWidth = 1;
     for (let j = 0; j < layers.length; j++) {
-      const y = j * layerHeight + 1 + overlayers.length * layerHeight;
+      const y = 2 + j * this.layerHeight + overlayers.length * this.layerHeight;
       const layer = layers[j];
       const activeLayer = layer.active;
       const dim = layer.getDimension('time');
@@ -71,13 +71,13 @@ export default class TimeComponent extends PureComponent {
       if (activeLayer) {
         ctx.fillStyle = '#d9edf7';
         ctx.strokeStyle = '#888';
-        ctx.fillRect(0, y + 0.5, canvasWidth, blockHeight);
-        ctx.strokeRect(-1, y + 0.5, canvasWidth + 2, blockHeight);
+        ctx.fillRect(0, y + 0.5, canvasWidth, this.blockHeight);
+        ctx.strokeRect(-1, y + 0.5, canvasWidth + 2, this.blockHeight);
       }
       ctx.fillStyle = '#fbaeae';
       ctx.strokeStyle = '#AAA';
-      ctx.fillRect(0, y + 4.5, canvasWidth, blockHeight - 8);
-      ctx.strokeRect(-1, y + 4.5, canvasWidth + 2, blockHeight - 8);
+      ctx.fillRect(0, y + 4.5, canvasWidth, this.blockHeight - 8);
+      ctx.strokeRect(-1, y + 4.5, canvasWidth + 2, this.blockHeight - 8);
       const layerStartIndex = dim.getIndexForValue(this.startDate, false);
       const layerStopIndex = dim.getIndexForValue(this.endDate, false);
       for (let q = layerStartIndex - 1; q < layerStopIndex + 1; q++) {
@@ -108,8 +108,8 @@ export default class TimeComponent extends PureComponent {
         const x = parseInt(pos * scaleWidth);
         const w = parseInt(posNext * scaleWidth) - x;
 
-        ctx.fillRect(x + 0.5, y + 0.5, w, blockHeight);
-        ctx.strokeRect(x + 0.5, y + 0.5, w, blockHeight);
+        ctx.fillRect(x + 0.5, y + 0.5, w, this.blockHeight);
+        ctx.strokeRect(x + 0.5, y + 0.5, w, this.blockHeight);
       }
     }
   }
@@ -134,6 +134,7 @@ export default class TimeComponent extends PureComponent {
     const numlayers = Math.max(2, panel.layers.length + 1);
     // const numlayers = wmjslayers.baselayers && wmjslayers.panelsProperties ? wmjslayers.baselayers.length + wmjslayers.panelsProperties.length + 1 : 2;
     const canvasHeight = Math.max(20 * (numlayers - 2), this.props.height);
+    console.log('canvasHeight', canvasHeight);
     this.canvasHeight = canvasHeight;
     this.timedim = timedim;
     this.ctxCanvasHeight = ctx.canvas.height;
@@ -332,18 +333,18 @@ export default class TimeComponent extends PureComponent {
   }
   /* istanbul ignore next */
   onCanvasClick (x, y) {
-    const { panel, dispatch, panelsActions, activePanelId } = this.props;
-    const { layers, baselayers } = panel;
-    const overlays = baselayers.filter((layer) => layer.keepOnTop === true);
+    // const { panel } = this.props;
+    // const { panel, dispatch, panelsActions, activePanelId } = this.props;
+    // const { layers, baselayers } = panel;
+    // const { baselayers } = panel;
+    // const overlays = baselayers.filter((layer) => layer.keepOnTop === true);
     const t = x / this.ctx.canvas.clientWidth;
 
-    // TODO: Replace with "global" height variable
-    const layerHeight = 20;
-    const overlaysHeight = overlays.length * layerHeight;
-    const layerClicked = Math.floor((y - overlaysHeight) / layerHeight);
-    if (layerClicked >= 0 && layerClicked < layers.length) {
+    // const overlaysHeight = overlays.length * this.layerHeight;
+    // const layerClicked = Math.floor((y - overlaysHeight) / this.layerHeight);
+    /* if (layerClicked >= 0 && layerClicked < layers.length) {
       dispatch(panelsActions.setActiveLayer({ activePanelId, layerClicked }));
-    }
+    } */
     const s = this.canvasDateInterval.getTimeSteps() - 1;
     const newTimeStep = parseInt(t * s);
     /* istanbul ignore next */
@@ -408,7 +409,7 @@ TimeComponent.propTypes = {
   activeMapId: PropTypes.number,
   panel: PropTypes.shape({
     panelsProperties: PropTypes.array
-  }),
-  panelsActions: PropTypes.object,
-  activePanelId: PropTypes.number
+  })
+  // ,  panelsActions: PropTypes.object,
+  // activePanelId: PropTypes.number
 };

@@ -7,9 +7,9 @@ import { Col, Row, Popover, PopoverTitle, PopoverContent } from 'reactstrap';
 import { SortableElement } from 'react-sortable-hoc';
 import Slider from 'rc-slider';
 import { Icon } from 'react-fa';
-
-require('rc-slider/assets/index.css');
+import PropTypes from 'prop-types';
 import { MAP_STYLES } from '../../constants/map_styles';
+require('rc-slider/assets/index.css');
 
 export default class Layer extends PureComponent {
   constructor () {
@@ -34,6 +34,7 @@ export default class Layer extends PureComponent {
 
   alterBaseLayer (newBaseLayer) {
     const { dispatch, panelsActions, index, activePanelId } = this.props;
+    // eslint-disable-next-line no-undef
     dispatch(panelsActions.setBaseLayer({ mapId: activePanelId, index: index, layer: new WMJSLayer(newBaseLayer) }));
   }
 
@@ -41,6 +42,7 @@ export default class Layer extends PureComponent {
     const { dispatch, panelsActions, index, activePanelId } = this.props;
     const { name, text } = newValue;
     const newLayer = { ...this.props.layer, name, title: text };
+    // eslint-disable-next-line no-undef
     new WMJSLayer(newLayer).parseLayer((l) => {
       dispatch(panelsActions.replaceLayer({ mapId: activePanelId, index: index, layer: l }));
     });
@@ -187,11 +189,12 @@ export default class Layer extends PureComponent {
 
           <EditableCell id={name} active={layer.active} color={this.props.color} onClick={() => { this.setState({ extraDimOpen: name }); }}>{dim.currentValue}</EditableCell>
         </div>);
-    })
+    });
   }
 
   render () {
-    const { layer, color, index } = this.props;
+    const { layer, color, index, layerManagerOpen } = this.props;
+    console.log(layerManagerOpen);
     const styles = layer && layer.styles ? layer.styles.map((styleObj) => styleObj.name) : [];
     switch (this.props.role) {
       case 'datalayers':
@@ -201,30 +204,32 @@ export default class Layer extends PureComponent {
         }
         const id = 'datalayer' + index;
         return (<Col>
-          {this.renderLayerChanger()}
-          {this.renderStyleChanger()}
-          {this.renderOpacityChanger()}
 
-          <ConcreteCell active={layer.active} color={color}>{layer.WMJSService.title}</ConcreteCell>
+          {this.renderLayerChanger()}
+          { layerManagerOpen ? this.renderStyleChanger() : null}
+          { layerManagerOpen ? this.renderOpacityChanger() : null}
+
+          { layerManagerOpen ? <ConcreteCell active={layer.active} color={color}>{layer.WMJSService.title}</ConcreteCell> : null }
           <EditableCell id={'layer' + id} onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             layer.WMJSService.getLayerObjectsFlat((layers) => {
-              this.setState({ layerChangerOpen: true, target: 'layer'+id, serviceLayers: layers });
+              this.setState({ layerChangerOpen: true, target: 'layer' + id, serviceLayers: layers });
             });
           }} active={layer.active} color={color}>{layer.title}</EditableCell>
-          <EditableCell id={'style' + id} onClick={(e) => {
+          { layerManagerOpen ? <EditableCell id={'style' + id} onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            this.setState({ styleChangerOpen: true, target: 'style'+id, serviceStyles: styles });
-          }} active={layer.active} color={color}>{layer.currentStyle}</EditableCell>
-          <EditableCell id={'opacity' + id} onClick={(e) => {
+            this.setState({ styleChangerOpen: true, target: 'style' + id, serviceStyles: styles });
+          }} active={layer.active} color={color}>{layer.currentStyle}</EditableCell> : null }
+          { layerManagerOpen ? <EditableCell id={'opacity' + id} onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            this.setState({ opacityChangerOpen: true, target: 'opacity'+id });
-          }} active={layer.active} color={color}>{parseInt(layer.opacity * 100) + '%'}</EditableCell>
-          <ConcreteCell active={layer.active} color={color}>{refTime ? refTime.currentValue : null}</ConcreteCell>
-          {this.renderRemainingDimensions(layer, id)}</Col>);
+            this.setState({ opacityChangerOpen: true, target: 'opacity' + id });
+          }} active={layer.active} color={color}>{parseInt(layer.opacity * 100) + '%'}</EditableCell> : null }
+          { layerManagerOpen ? <ConcreteCell active={layer.active} color={color}>{refTime ? refTime.currentValue : null}</ConcreteCell> : null }
+          { layerManagerOpen ? this.renderRemainingDimensions(layer, id) : null}
+        </Col>);
       case 'overlays':
         return <Col><ConcreteCell color={color}>{layer.title}</ConcreteCell></Col>;
       case 'maplayers':
@@ -238,33 +243,76 @@ export default class Layer extends PureComponent {
   }
 }
 
+Layer.propTypes = {
+  index: PropTypes.number,
+  layerManagerOpen: PropTypes.bool,
+  activePanelId: PropTypes.number,
+  panelsActions: PropTypes.object,
+  role: PropTypes.string,
+  dispatch: PropTypes.func,
+  color: PropTypes.string,
+  layer: PropTypes.object
+};
+
 export class UnsortableLayer extends PureComponent {
   render () {
-    const { role, color, layer, layerIndex, dispatch, panelsActions, activePanelId, onLayerClick } = this.props;
+    const { role, color, layer, layerIndex, dispatch, panelsActions, activePanelId, onLayerClick, layerManagerOpen } = this.props;
     const backgroundColor = role === 'datalayers' && layer.active ? 'rgba(217, 237, 247, 0.6)' : null;
+    let className = 'Layer';
+    if (role === 'datalayers' && layer.active) {
+      className = 'SelectedLayer';
+    }
     return (
-      <Row onClick={() => onLayerClick ? onLayerClick(layerIndex) : null} className='Layer' style={{ backgroundColor: backgroundColor }}>
-        <Layer dispatch={dispatch} panelsActions={panelsActions} activePanelId={activePanelId}
-          role={role} color={color} layer={layer} index={layerIndex} />
+      <Row onClick={() => onLayerClick ? onLayerClick(layerIndex) : null} className={className} style={{ backgroundColor: backgroundColor }}>
         <Col xs='auto' style={{ margin: '0 0.33rem' }}>
           <Icon disabled className={'modifier disabled'} name='bars' />
         </Col>
         {role !== 'maplayers'
           ? <LayerModifier activePanelId={activePanelId} dispatch={dispatch} role={role} panelsActions={panelsActions} layer={layer} index={layerIndex} />
-          : <Col xs='auto' style={{ marginRight: '2.125rem' }} />}
+          : null }
+        <Layer dispatch={dispatch} panelsActions={panelsActions} activePanelId={activePanelId}
+          role={role} color={color} layer={layer} index={layerIndex} layerManagerOpen={layerManagerOpen} />
       </Row>);
   }
 }
 
-export const SortableLayer = SortableElement(({ role, color, layer, layerIndex, dispatch, panelsActions, activePanelId, onLayerClick }) => {
+UnsortableLayer.propTypes = {
+  layerIndex: PropTypes.number,
+  layerManagerOpen: PropTypes.bool,
+  activePanelId: PropTypes.number,
+  panelsActions: PropTypes.object,
+  role: PropTypes.string,
+  dispatch: PropTypes.func,
+  color: PropTypes.string,
+  layer: PropTypes.object,
+  onLayerClick: PropTypes.func
+};
+
+export const SortableLayer = SortableElement(({ role, color, layer, layerIndex, dispatch, panelsActions, activePanelId, onLayerClick, layerManagerOpen }) => {
   const backgroundColor = role === 'datalayers' && layer.active ? 'rgba(217, 237, 247, 0.6)' : null;
+  let className = 'Layer';
+  if (role === 'datalayers' && layer.active) {
+    className = 'SelectedLayer';
+  }
   return (
-    <Row onClick={() => onLayerClick ? onLayerClick(layerIndex) : null} className='Layer' style={{ backgroundColor: backgroundColor }}>
-      <Layer dispatch={dispatch} panelsActions={panelsActions} activePanelId={activePanelId}
-        role={role} color={color} layer={layer} index={layerIndex} />
-      <DragHandle />
+    <Row onClick={() => onLayerClick ? onLayerClick(layerIndex) : null} className={className} style={{ backgroundColor: backgroundColor }}>
+      <DragHandle className={'draghandle'} onClick={() => { console.log('DragHandle clicked'); }} />
       { role !== 'maplayers'
         ? <LayerModifier activePanelId={activePanelId} dispatch={dispatch} role={role} panelsActions={panelsActions} layer={layer} index={layerIndex} />
-        : <Col xs='auto' style={{ marginRight: '2.125rem' }} />}
+        : null }
+      <Layer dispatch={dispatch} panelsActions={panelsActions} activePanelId={activePanelId}
+        role={role} color={color} layer={layer} index={layerIndex} layerManagerOpen={layerManagerOpen} />
     </Row>);
 });
+
+SortableLayer.propTypes = {
+  layerIndex: PropTypes.number,
+  layerManagerOpen: PropTypes.bool,
+  activePanelId: PropTypes.number,
+  panelsActions: PropTypes.object,
+  role: PropTypes.string,
+  dispatch: PropTypes.func,
+  color: PropTypes.string,
+  layer: PropTypes.object,
+  onLayerClick: PropTypes.func
+};
