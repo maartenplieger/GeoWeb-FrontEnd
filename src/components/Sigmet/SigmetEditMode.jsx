@@ -28,7 +28,6 @@ import HeightsSection from './Sections/HeightsSection';
 import {
   DIRECTIONS, UNITS_ALT, UNITS, MODES_LVL, MODES_LVL_OPTIONS, CHANGES, MOVEMENT_TYPES, MOVEMENT_OPTIONS, SIGMET_TYPES,
   DATETIME_FORMAT, DISTRIBUTION_OPTIONS, dateRanges } from './SigmetTemplates';
-import { debounce } from '../../utils/debounce';
 import EndPositionSection from './Sections/EndPositionSection';
 
 const DROP_DOWN_NAMES = {
@@ -47,7 +46,7 @@ class SigmetEditMode extends PureComponent {
     this.maxLevelPerUnit = this.maxLevelPerUnit.bind(this);
     this.stepLevelPerUnit = this.stepLevelPerUnit.bind(this);
     this.formatLevelPerUnit = this.formatLevelPerUnit.bind(this);
-    this.verifySigmetDebounced = debounce(this.verifySigmetDebounced.bind(this), 250, false);
+    this.verifySigmet = this.verifySigmet.bind(this);
     this.state = {
       isAtOrAboveDropDownOpen: false,
       isBetweenLowerDropDownOpen: false,
@@ -75,21 +74,42 @@ class SigmetEditMode extends PureComponent {
     }
   }
 
-  verifySigmetDebounced (sigmetObject) {
+  verifySigmet (sigmetObject) {
     const { dispatch, actions } = this.props;
     dispatch(actions.verifySigmetAction(sigmetObject));
   }
 
-  componentWillReceiveProps (nextProps) {
-    if (nextProps.sigmet && this.props.sigmet && nextProps.geojson && this.props.geojson) {
-      if (nextProps.sigmet !== this.props.sigmet || nextProps.geojson !== this.props.geojson) {
-        this.verifySigmetDebounced(nextProps.sigmet);
+  componentDidUpdate (prevProps) {
+    if (prevProps.sigmet && this.props.sigmet && prevProps.geojson && this.props.geojson) {
+      /* The issue with the looping updates of the TAC message in the sigmet, is because the tac property is inside the sigmet object.
+        When you update the tac, the sigmet is different triggering a new update.
+        Another issue is that when the verifySigmet function is bound with a debounce function, updates occur 250 ms later, 
+        causing problems with synchronization of objects. Objects are updated with the wrong (old) data.
+
+        TODO DECIDE: Keep it like this or refactor the tac property outside the sigmet object, just like the geojson. For now we do a deep compare without the TAC property.
+      */
+      let sigmetIsDifferent = false;
+      if (prevProps.geojson !== this.props.geojson) {
+        sigmetIsDifferent = true;
+      } else {
+        Object.keys(prevProps.sigmet).forEach((sigmetProperty) => {
+          if (sigmetProperty !== 'tac') {
+            if (prevProps.sigmet[sigmetProperty] !== this.props.sigmet[sigmetProperty]) {
+              /* Sigmet object differ */
+              sigmetIsDifferent = true;
+              // break; return; <=== ???? not possible?
+            }
+          }
+        });
+      }
+      if (sigmetIsDifferent) {
+        this.verifySigmet(this.props.sigmet);
       }
     }
   }
 
   componentDidMount () {
-    this.verifySigmetDebounced(this.props.sigmet);
+    this.verifySigmet(this.props.sigmet);
   }
 
   setMode (evt, selectedOption = null) {
