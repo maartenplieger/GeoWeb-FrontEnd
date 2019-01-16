@@ -179,6 +179,7 @@
     "istanbul": "^1.1.0-alpha.1",
     "jsdom": "^13.0.0",
     "jsdom-global": "^3.0.2",
+    "jslint": "^0.12.0",
     "mocha": "^5.2.0",
     "moxios": "^0.4.0",
     "node-sass": "^4.9.0",

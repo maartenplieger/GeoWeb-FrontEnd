@@ -1345,7 +1345,7 @@ const verifySigmet = (sigmetObject, container) => {
       }
     ).catch(error => {
       console.error('sigmet/verify', error);
-      setTacRepresentation('Unable to make TAC request');
+      setTacRepresentation('Unable to generate TAC');
     })
   );
 };

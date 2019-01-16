@@ -384,8 +384,8 @@ class SigmetEditMode extends PureComponent {
             : null
           }
           {isVolcanicAsh
-            ? <Input type='number' placeholder='000.0' step='0.1'
-              value={Array.isArray(volcanoCoordinates) && volcanoCoordinates.length > 1 && volcanoCoordinates[0] !== null ? volcanoCoordinates[0] : ''}
+            ? <Input type='number' placeholder='00.0' step='0.1'
+              value={Array.isArray(volcanoCoordinates) && volcanoCoordinates.length > 0 && volcanoCoordinates[0] !== null ? volcanoCoordinates[0] : ''}
               data-field='volcano_coordinates_lat'
               onChange={(evt) => dispatch(actions.updateSigmetAction(uuid, 'va_extra_fields.volcano.position.0', evt.target.value || null))}
             />
